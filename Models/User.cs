@@ -10,37 +10,23 @@ namespace BaseApi.Models
     {
         public Guid Id { get; set; }
 
-        [Required, MinLength(5)]
+        [Required, MinLength(5)] 
         public string Name { get; set; }
-        
+
         [EmailAddress, Required] 
         public string Email { get; set; }
         public string PasswordHash { get; set; }
-        
+
         [Required, NotMapped] 
         public string Password { get; set; }
 
         [Required, Compare("Password"), NotMapped]
         public string PasswordConfirmation { get; set; }
 
-        public void SetPasswordhHash()
-        {
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(input: Password);
-        }
+        public void SetPasswordhHash() => PasswordHash = BCrypt.Net.BCrypt.HashPassword(input: Password);
 
-        public bool Compare(string userSubmittedPassword)
-        {
-            return BCrypt.Net.BCrypt.Verify(userSubmittedPassword, PasswordHash);
-        }
+        public bool Compare(string password) => BCrypt.Net.BCrypt.Verify(password, PasswordHash);
 
-        public object ToMessage()
-        {
-            return new
-            {
-                Id,
-                Name,
-                Email
-            };
-        }
+        public object ToMessage() => new {Id, Name, Email};
     }
 }

@@ -11,9 +11,8 @@ namespace BaseApi.Helper
     {
         public static object GetToken(User user)
         {
-            string SECRET = Environment.GetEnvironmentVariable("SECRET");
-            Console.WriteLine("================> " + SECRET);
-            var key = Encoding.ASCII.GetBytes(SECRET);
+            string secret = Environment.GetEnvironmentVariable("SECRET");
+            var key = Encoding.ASCII.GetBytes(secret);
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {

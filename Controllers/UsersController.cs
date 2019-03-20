@@ -12,8 +12,12 @@ namespace BaseApi.Controllers
     [Route("api/[controller]")]
     public class UsersController : Controller
     {
-        private readonly DBcontext _dbContext = new DBcontext();
+        private readonly DBcontext _dbContext;
         
+        public UsersController(DBcontext context){
+           _dbContext = context;
+        }
+
         [AllowAnonymous]
         [HttpPost("[action]")]
         public async Task<IActionResult> Register([FromBody] User user)
@@ -22,7 +26,7 @@ namespace BaseApi.Controllers
             {
                 if (user == null)
                 {
-                    throw new BadRequestException(message: "user object is null");
+                    throw new BadRequestException("user object is null");
                 }
 
                 if (!ModelState.IsValid)
@@ -34,7 +38,7 @@ namespace BaseApi.Controllers
                     await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == user.Email) != null;
                 if (isEmailAlreadyTaken)
                 {
-                    throw new BadRequestException(message: "user with this email already exist");
+                    throw new BadRequestException("user with this email already exist");
                 }
 
                 user.SetPasswordhHash();
@@ -61,18 +65,18 @@ namespace BaseApi.Controllers
             {
                 if (user == null)
                 {
-                    throw new BadRequestException(message: "user object is null");
+                    throw new BadRequestException( "user object is null");
                 }
 
                 User userFromDb = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
                 if (userFromDb == null)
                 {
-                    throw new BadRequestException(message: "Wrong login");
+                    throw new BadRequestException( "Wrong login");
                 }
 
-                if (!userFromDb.Compare(userSubmittedPassword: user.Password))
+                if (!userFromDb.Compare(user.Password))
                 {
-                    throw new BadRequestException(message: "Wrong password");
+                    throw new BadRequestException( "Wrong password");
                 }
                 
                 return Ok(JWT.GetToken(user));
