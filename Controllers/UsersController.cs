@@ -13,56 +13,56 @@ namespace BaseApi.Controllers {
 
     [Route ("api/[controller]")]
     public class UsersController : Controller {
-        private readonly DBcontext _dbContext;
+        private readonly DBcontext _context;
 
         public UsersController (DBcontext context) {
-            _dbContext = context;
+            this._context = context;
         }
 
         [AllowAnonymous]
         [HttpPost ("[action]")]
-        public ActionResult<User> Register ([FromBody] User user) {
+        public async Task<ActionResult<User>> Register ([FromBody] User user) {
             try {
                 if (user == null) {
-                    throw new BadRequestException ("user object is null");
+                    return BadRequest ("user object is null".ToBadRequest ());
                 }
 
                 if (!ModelState.IsValid) {
                     return BadRequest (ModelState.ToBadRequest ());
                 }
 
-                bool isEmailAlreadyTaken = _dbContext.Users.FirstOrDefault (u => u.Email == user.Email) != null;
+                bool isEmailAlreadyTaken = await _context.Users.FirstOrDefaultAsync (u => u.Email == user.Email) != null;
                 if (isEmailAlreadyTaken) {
-                    throw new BadRequestException ("user with this email already exist");
+                    return BadRequest ("user with this email already exist".ToBadRequest ());
                 }
 
                 user.SetPasswordhHash ();
-                _dbContext.Users.Add (user);
-                _dbContext.SaveChanges ();
+                _context.Add (user);
+                await _context.SaveChangesAsync ();
                 var response = new {
                     data = user.ToMessage ()
                 };
                 return Created ("register", response);
             } catch (Exception e) {
-                return BadRequest (e.Message.ToBadRequest ());
+                return StatusCode (500);
             }
         }
 
         [AllowAnonymous]
         [HttpPost ("[action]")]
-        public ActionResult<string> Auth ([FromBody] User user) {
+        public async Task<ActionResult<string>> Auth ([FromBody] User user) {
             try {
                 if (user == null) {
-                    throw new BadRequestException ("user object is null");
+                    return BadRequest ("user object is null".ToBadRequest ());
                 }
 
-                User userFromDb = _dbContext.Users.FirstOrDefault (u => u.Email == user.Email);
+                User userFromDb = await _context.Users.FirstOrDefaultAsync (u => u.Email == user.Email);
                 if (userFromDb == null) {
-                    throw new BadRequestException ("Wrong email");
+                    return BadRequest ("Wrong email".ToBadRequest ());
                 }
 
                 if (!userFromDb.Compare (user.Password)) {
-                    throw new BadRequestException ("Wrong password");
+                    return BadRequest ("Wrong password".ToBadRequest ());
                 }
                 var token = JWT.GetToken (userFromDb);
                 var response = new {
@@ -71,30 +71,30 @@ namespace BaseApi.Controllers {
                 };
                 return Ok (response);
             } catch (Exception e) {
-                return BadRequest (e.Message.ToBadRequest ());
+                return StatusCode (500);
             }
         }
 
         [HttpPut ("{id}")]
-        public ActionResult<string> Put (string id, [FromBody] User user) {
+        public async Task<ActionResult<string>> Put (Guid id, [FromBody] User user) {
             try {
-                var uuid = Guid.Parse (User.Identity.Name.ToString ());
-                var uuidFromQuery = Guid.Parse (id);
-
                 if (user == null) {
-                    throw new BadRequestException ("user object is null");
+                    return BadRequest ("user object is null".ToBadRequest ());
                 }
 
-                User userFromDb = _dbContext.Users.FirstOrDefault (u => u.Id == uuidFromQuery);
-                User userFromTokenId = _dbContext.Users.FirstOrDefault (u => u.Id == uuid);
-
+                var uuid = Guid.Parse (User.Identity.Name);
+                var uuidFromQuery = id;
+                User userFromDb = await _context.Users.FirstOrDefaultAsync (u => u.Id == uuidFromQuery);
+                User userFromTokenId = await _context.Users.FirstOrDefaultAsync (u => u.Id == uuid);
                 if ((userFromTokenId == null) || (userFromDb?.Id != userFromTokenId?.Id)) {
                     return Unauthorized ();
                 }
-                User userWithSameLogin = _dbContext.Users.FirstOrDefault (u => u.Email == user.Email);
+
+                User userWithSameLogin = await _context.Users.FirstOrDefaultAsync (u => u.Email == user.Email);
                 if (userWithSameLogin != null) {
-                    throw new BadRequestException ("Login already taken");
+                    return BadRequest ("Login already taken".ToBadRequest ());
                 }
+
                 if (!ModelState.IsValid) {
                     return BadRequest (ModelState.ToBadRequest ());
                 }
@@ -106,34 +106,34 @@ namespace BaseApi.Controllers {
                 userFromDb.PasswordConfirmation = passwordConfirmation;
                 userFromDb.SetPasswordhHash ();
 
-                _dbContext.Users.Update (userFromDb);
-                _dbContext.SaveChanges ();
+                _context.Update (userFromDb);
+                await _context.SaveChangesAsync ();
 
                 return StatusCode (201);
             } catch (Exception e) {
-                return BadRequest (e.Message.ToBadRequest ());
+                return StatusCode (500);
             }
         }
 
         [HttpDelete ("{id}")]
-        public ActionResult<string> Delete (string id) {
+        public async Task<ActionResult<string>> Delete (Guid id) {
             try {
-                var uuid = Guid.Parse (User.Identity.Name.ToString ());
-                var uuidFromQuery = Guid.Parse (id);
+                var uuid = Guid.Parse (User.Identity.Name);
+                var uuidFromQuery = id;
 
-                User userFromDb = _dbContext.Users.FirstOrDefault (u => u.Id == uuidFromQuery);
-                User userFromTokenId = _dbContext.Users.FirstOrDefault (u => u.Id == uuid);
+                User userFromDb = await _context.Users.FirstOrDefaultAsync (u => u.Id == uuidFromQuery);
+                User userFromTokenId = await _context.Users.FirstOrDefaultAsync (u => u.Id == uuid);
 
                 if ((userFromTokenId == null) || (userFromDb?.Id != userFromTokenId?.Id)) {
                     return Unauthorized ();
                 }
 
-                _dbContext.Users.Remove (userFromDb);
-                _dbContext.SaveChanges ();
+                _context.Remove (userFromDb);
+                await _context.SaveChangesAsync();
 
                 return StatusCode (204);
             } catch (Exception e) {
-                return BadRequest (e.Message.ToBadRequest ());
+                return StatusCode (500);
             }
         }
     }
